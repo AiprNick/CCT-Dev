@@ -51,7 +51,10 @@ bash statusline/install.sh
 2. 安裝 `jq`（若尚未安裝）
 3. 在 `~/.claude/` 建立指向 repo 原始碼的符號連結（`statusline-command.sh`、`dashboard.sh`、`heartbeat.sh`、`tmux-sessions.sh`、`status-hook.sh`）— `git pull` 即可自動更新，無需重新安裝。若檔案已存在且非符號連結（使用者自己的腳本），會跳過保護
 4. 更新 `~/.claude/settings.json` — 設定 statusLine、session 生命週期 hooks（SessionStart/SessionEnd）、事件驅動狀態 hooks（UserPromptSubmit/PostToolUse/Stop）。自動備份既有設定
-5. 若偵測到 repo 中有 `tmux/tmux.conf`，詢問是否安裝完整 tmux 環境（tmux.conf + TPM + 所有插件，包含 Catppuccin 主題）
+5. 若偵測到 repo 中有 `tmux/tmux.conf`，會比對已安裝的版本：
+   - **一致**：自動跳過 tmux 設定
+   - **有差異**：顯示警告並詢問是否覆蓋（既有設定會先備份）
+   - **未安裝**：詢問是否安裝完整 tmux 環境（tmux.conf + TPM + 所有插件，包含 Catppuccin 主題）
 6. 若不安裝完整環境但在 tmux session 中，設定最小化的 Claude session monitor
 
 若 `settings.json` 已存在，原始檔案會備份為 `~/.claude/settings.json.backup`。
@@ -86,10 +89,35 @@ export NO_COLOR=1
 
 無顏色模式下，進度條使用 `=` 和 `.`，分隔符使用 `|`。
 
-### 新增顯示區段
+### 可用 Widget
 
-- **費用（Cost）**：顯示預估 API 費用 `est $X.XX`，**預設關閉**（訂閱制用戶不需要）。API 計費用戶可設定 `export CLAUDE_STATUSLINE_SHOW_COST=1` 開啟
-- **200k 警告（Alert）**：當 Token 數超過 200k 時顯示 `⚠ 200k`
+v2.0.0 起支援自訂 Widget 配置，透過互動式設定工具選擇要顯示的欄位：
+
+```bash
+bash ~/.claude/configure.sh
+```
+
+| Widget | 說明 | 範例 |
+|--------|------|------|
+| `model` | 模型名稱 | `Opus 4.6` |
+| `bar` | Context 進度條 | `[████████░░░░░░░░░░░░]` |
+| `ctx` | Context 使用百分比 | `42%` |
+| `tokens` | Token 數 | `85.2k tokens` |
+| `cost` | Session 花費 | `$11.01` |
+| `duration` | Session 持續時間 | `4h47m` |
+| `lines` | 程式碼變更量 | `+538/-47` |
+| `alert` | 200k Token 警告 | `⚠ 200k` |
+| `git` | Git 分支名稱 | ` main` |
+| `project` | 專案名稱 | `my-project` |
+| `version` | Claude Code 版本 | `v2.1.76` |
+| `vim` | Vim 模式指示器 | `[NORMAL]` |
+
+支援**雙行顯示**：Widget 可分配到 Line 1 或 Line 2。設定存在 `~/.claude/statusline-widgets.conf`。
+
+若未建立設定檔，預設顯示：`model | bar | ctx | tokens | git | project`（與 v1.x 相容）。
+
+### 額外顯示功能
+
 - **Context % 顏色**：依使用率變色 — ≤60% 正常、60-80% 警告、>80% 危險
 
 ### 12 語意色彩 Token
@@ -224,6 +252,7 @@ cp ~/.claude/settings.json.backup ~/.claude/settings.json
 |------|------|
 | `install.sh` | 一鍵安裝腳本（符號連結方式，`git pull` 自動更新） |
 | `uninstall.sh` | 一鍵移除腳本 |
+| `configure.sh` | 互動式 Widget 設定工具（選擇顯示欄位、行數、順序） |
 | `statusline-command.sh` | 狀態列腳本（安裝後以符號連結至 `~/.claude/`） |
 | `dashboard.sh` | 多實例 Dashboard（安裝後以符號連結至 `~/.claude/`） |
 | `heartbeat.sh` | 心跳 Daemon，需要 bash 4.2+（安裝後以符號連結至 `~/.claude/`） |

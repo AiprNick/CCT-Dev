@@ -51,7 +51,10 @@ The script automatically:
 2. Installs `jq` (if not already installed)
 3. Creates symlinks in `~/.claude/` pointing to repo source (`statusline-command.sh`, `dashboard.sh`, `heartbeat.sh`, `tmux-sessions.sh`, `status-hook.sh`) — `git pull` auto-updates without re-install. Skips files that already exist as regular files to avoid overwriting user's own scripts
 4. Updates `~/.claude/settings.json` — configures statusLine, session lifecycle hooks (SessionStart/SessionEnd), and event-driven status hooks (UserPromptSubmit/PostToolUse/Stop). Auto-backs up existing settings
-5. If `tmux/tmux.conf` is found in the repo, offers to install the full tmux environment (tmux.conf + TPM + all plugins including Catppuccin theme)
+5. If `tmux/tmux.conf` is found in the repo, compares with the installed version:
+   - **Identical**: automatically skips tmux setup
+   - **Differs**: shows a warning and asks whether to overwrite (existing config is backed up)
+   - **Not installed**: asks whether to install the full tmux environment (tmux.conf + TPM + all plugins including Catppuccin theme)
 6. If full tmux setup is skipped but running inside a tmux session, configures a minimal Claude session monitor
 
 If `settings.json` already exists, the original is backed up to `~/.claude/settings.json.backup`.
@@ -86,10 +89,35 @@ export NO_COLOR=1
 
 In no-color mode, the progress bar uses `=` and `.`, and separators use `|`.
 
-### Additional Segments
+### Available Widgets
 
-- **Cost**: Shows estimated API cost `est $X.XX`, **off by default** (not needed for subscription users). API billing users can enable with `export CLAUDE_STATUSLINE_SHOW_COST=1`
-- **200k Alert**: Displays `⚠ 200k` when token count exceeds 200k
+Since v2.0.0, widgets are configurable via an interactive tool:
+
+```bash
+bash ~/.claude/configure.sh
+```
+
+| Widget | Description | Example |
+|--------|-------------|---------|
+| `model` | Model name | `Opus 4.6` |
+| `bar` | Context progress bar | `[████████░░░░░░░░░░░░]` |
+| `ctx` | Context usage percentage | `42%` |
+| `tokens` | Token count | `85.2k tokens` |
+| `cost` | Session cost | `$11.01` |
+| `duration` | Session duration | `4h47m` |
+| `lines` | Lines changed | `+538/-47` |
+| `alert` | 200k token warning | `⚠ 200k` |
+| `git` | Git branch name | ` main` |
+| `project` | Project name | `my-project` |
+| `version` | Claude Code version | `v2.1.76` |
+| `vim` | Vim mode indicator | `[NORMAL]` |
+
+Supports **two-line display**: widgets can be assigned to Line 1 or Line 2. Config saved to `~/.claude/statusline-widgets.conf`.
+
+Without a config file, defaults to: `model | bar | ctx | tokens | git | project` (v1.x compatible).
+
+### Additional Features
+
 - **Context % Color**: Changes color by usage — ≤60% normal, 60-80% warning, >80% danger
 
 ### 12 Semantic Color Tokens
@@ -224,6 +252,7 @@ cp ~/.claude/settings.json.backup ~/.claude/settings.json
 |------|-------------|
 | `install.sh` | One-click installer (symlinks auto-update via `git pull`) |
 | `uninstall.sh` | One-click uninstaller |
+| `configure.sh` | Interactive widget configurator (choose fields, lines, order) |
 | `statusline-command.sh` | Status line script (symlinked to `~/.claude/` after install) |
 | `dashboard.sh` | Multi-instance dashboard (symlinked to `~/.claude/` after install) |
 | `heartbeat.sh` | Heartbeat daemon, requires bash 4.2+ (symlinked to `~/.claude/` after install) |

@@ -49,7 +49,7 @@ fi
 
 # ── Step 3: Remove installed scripts ──────────────────────────────────────────
 info "Removing installed scripts..."
-for script in statusline-command.sh statusline.sh dashboard.sh heartbeat.sh tmux-sessions.sh status-hook.sh; do
+for script in statusline-command.sh statusline.sh dashboard.sh heartbeat.sh tmux-sessions.sh status-hook.sh configure.sh; do
     target="$CLAUDE_DIR/$script"
     if [ -f "$target" ] || [ -L "$target" ]; then
         rm -f "$target"
@@ -58,6 +58,14 @@ for script in statusline-command.sh statusline.sh dashboard.sh heartbeat.sh tmux
         skipped "$target (not found)"
     fi
 done
+
+# ── Step 3.5: Remove widget config ───────────────────────────────────────────
+if [ -f "$CLAUDE_DIR/statusline-widgets.conf" ]; then
+    rm -f "$CLAUDE_DIR/statusline-widgets.conf"
+    removed "$CLAUDE_DIR/statusline-widgets.conf"
+else
+    skipped "statusline-widgets.conf (not found)"
+fi
 
 # ── Step 4: Clean settings.json ───────────────────────────────────────────────
 if [ -f "$SETTINGS_FILE" ]; then

@@ -73,7 +73,7 @@ mkdir -p "$CLAUDE_DIR" "$SESSIONS_DIR"
 # and replace with a symlink.
 info "Creating symlinks in $CLAUDE_DIR..."
 
-for _script in statusline-command.sh dashboard.sh heartbeat.sh tmux-sessions.sh status-hook.sh; do
+for _script in statusline-command.sh dashboard.sh heartbeat.sh tmux-sessions.sh status-hook.sh configure.sh; do
     _target="$CLAUDE_DIR/$_script"
     if [ -e "$_target" ] && [ ! -L "$_target" ]; then
         mv "$_target" "$_target.bak"
@@ -144,11 +144,35 @@ REPO_TMUX_CONF="$REPO_DIR/tmux/tmux.conf"
 
 if [ -f "$REPO_TMUX_CONF" ] && command -v tmux >/dev/null 2>&1; then
     info "Found tmux.conf in repo: $REPO_TMUX_CONF"
-    printf '  Install full tmux environment (tmux.conf + TPM + plugins)? [Y/n] '
-    read -r _tmux_answer
+
+    # Compare existing tmux.conf with repo version
+    _tmux_installed="$HOME/.config/tmux/tmux.conf"
+    if [ -f "$_tmux_installed" ]; then
+        if diff -q "$_tmux_installed" "$REPO_TMUX_CONF" >/dev/null 2>&1; then
+            info "tmux.conf is already up-to-date. Skipping tmux setup."
+            _tmux_answer="skip"
+        else
+            warn "tmux.conf differs from repo version."
+            info "Run 'diff ~/.config/tmux/tmux.conf $REPO_TMUX_CONF' to see changes."
+            printf '  Overwrite with repo version? (existing will be backed up) [Y/n] '
+            read -r _tmux_answer
+            case "$_tmux_answer" in
+                [Nn]*) _tmux_answer="skip"; info "Kept existing tmux.conf." ;;
+                *)     _tmux_answer="install" ;;
+            esac
+        fi
+    else
+        printf '  Install full tmux environment (tmux.conf + TPM + plugins)? [Y/n] '
+        read -r _tmux_answer
+        case "$_tmux_answer" in
+            [Nn]*) _tmux_answer="skip" ;;
+            *)     _tmux_answer="install" ;;
+        esac
+    fi
+
     case "$_tmux_answer" in
-        [Nn]*) info "Skipped tmux environment setup." ;;
-        *)
+        skip) info "Skipped tmux environment setup." ;;
+        install)
             # 6a. Deploy tmux.conf
             mkdir -p "$HOME/.config/tmux"
             if [ -f "$HOME/.config/tmux/tmux.conf" ]; then
@@ -236,7 +260,7 @@ _installed_ver=$(sh "$TARGET_SCRIPT" --version 2>/dev/null || echo "unknown")
 info "Version: $_installed_ver"
 info "Restart Claude Code to activate the status line."
 echo ""
+info "Configure widgets: bash ~/.claude/configure.sh"
 info "Multi-instance dashboard: sh ~/.claude/dashboard.sh"
 info "Real-time tmux monitor: automatic if inside tmux, or run commands above"
-info "To customize colors, edit: $TARGET_SCRIPT"
 info "To uninstall, see: $SCRIPT_DIR/README.md"
