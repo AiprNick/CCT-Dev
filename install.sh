@@ -196,10 +196,42 @@ if [ -f "$TMUX_CONF" ]; then
             warn "Existing tmux.conf backed up to $_backup"
         fi
         cat > "$TMUX_CONF_DIR/tmux.conf" << 'MINCONF'
-# Minimal tmux.conf for tmux < 3.2 (no Catppuccin/TPM)
-set -g default-terminal "tmux-256color"
-set -ga terminal-overrides ",*:Tc"
+# tmux.conf for tmux < 3.2 (no Catppuccin/TPM, basic colors)
+set -g history-limit 102400
 set -g mouse on
+bind -Tcopy-mode MouseDragEnd1Pane send -X copy-selection-no-clear
+set -gs set-clipboard on
+
+# True color
+set -g default-terminal "tmux-256color"
+set -ag terminal-overrides ",xterm-256color:RGB"
+
+# Prefix: Ctrl+a
+set -g prefix C-a
+unbind C-b
+bind-key C-a send-prefix
+
+# Window/pane management
+bind c new-window -c "#{pane_current_path}"
+unbind %
+bind | split-window -h -c "#{pane_current_path}"
+unbind '"'
+bind - split-window -v -c "#{pane_current_path}"
+bind-key s setw synchronize-panes
+bind-key C-l send-keys C-l \; clear-history
+
+# Pane resize (vim-style)
+bind -r j resize-pane -D 5
+bind -r k resize-pane -U 5
+bind -r l resize-pane -R 5
+bind -r h resize-pane -L 5
+bind -r m resize-pane -Z
+
+# Reload config
+unbind r
+bind r source-file ~/.config/tmux/tmux.conf \; display-message "Config reloaded"
+
+# Status bar (Catppuccin Mocha colors, no plugin needed)
 set -g base-index 1
 set -g pane-base-index 1
 set -g status-position bottom
@@ -207,10 +239,11 @@ set -g status-interval 5
 set -g status-style "bg=#1e1e2e,fg=#cdd6f4"
 set -g status-left "#[fg=#89b4fa,bold] #S "
 set -g status-right "#[fg=#6c7086]%H:%M "
+set -g status-right-length 200
 set -g message-style "bg=#313244,fg=#cdd6f4"
 set -g pane-border-style "fg=#313244"
 set -g pane-active-border-style "fg=#89b4fa"
-bind r source-file ~/.config/tmux/tmux.conf \; display "Reloaded"
+set -g mode-style "fg=#1e1e2e,bg=#fab387"
 
 # Claude session monitor (if installed)
 if-shell '[ -f ~/.claude/tmux-sessions.sh ]' {
